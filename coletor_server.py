@@ -57,196 +57,93 @@ agora=datetime.now()
 #[] 
 #[]
 
-def insert_mapper(host,path,wwnid,size):
-	dbtable="mapper"
+def valida_host(HOST):
+	print HOST,
 	con=MySQLdb.connect(dbhost,dbuser,dbpass)
 	con.select_db(dbbase)
+
 	query="""
-	INSERT INTO %s VALUES ( NULL,'%s','%s','%s',%s,'%s')
-	""" % (\
-	dbtable,host,path,wwnid,size,agora)
-	with con:
-		cur = con.cursor()
-		cur.execute(query)
-		last=cur.lastrowid
-	return last
-'''
-mysql> explain mapper;
-+----------+---------------+------+-----+---------+----------------+
-| Field    | Type          | Null | Key | Default | Extra          |
-+----------+---------------+------+-----+---------+----------------+
-| idmapper | int(11)       | NO   | PRI | NULL    | auto_increment |
-| host     | varchar(20)   | NO   | PRI | NULL    |                |
-| mpath    | varchar(20)   | YES  |     | NULL    |                |
-| wwid     | varchar(50)   | NO   | PRI | NULL    |                |
-| size     | decimal(16,0) | YES  |     | NULL    |                |
-| criado   | datetime      | NO   | PRI | NULL    |                |
-+----------+---------------+------+-----+---------+----------------+
-'''
-	#insert_sd_associados(last_id,sd_disco,inode_major,inode_minor,status,ativo)
-def insert_sd_associados(idmapper,sd_disco,inode_major,inode_minor,status,ativo):
-	dbtable="sd_associados"
-	con=MySQLdb.connect(dbhost,dbuser,dbpass)
-	con.select_db(dbbase)
-	query="""
-	INSERT INTO %s VALUES ( NULL,%s,"%s",%s,%s,%s,%s)
-	""" % (\
-	dbtable,idmapper,sd_disco,int(inode_major),int(inode_minor),status,ativo)
+		SELECT ativo  FROM  host_desc  WHERE host = '%s'
+		""" % HOST
 	#print query
 	with con:
 		cur = con.cursor()
+	try:
 		cur.execute(query)
-		last=cur.lastrowid
-	return last
-
-'''
-mysql> explain sd_associados;
-+-------------+-------------+------+-----+---------+----------------+
-| Field       | Type        | Null | Key | Default | Extra          |
-+-------------+-------------+------+-----+---------+----------------+
-| idsd        | int(11)     | NO   | PRI | NULL    | auto_increment |
-| idmapper    | int(11)     | NO   |     | NULL    |                |
-| disco       | varchar(10) | NO   | PRI | NULL    |                |
-| inode_major | int(11)     | YES  |     | NULL    |                |
-| inode_minor | int(11)     | YES  |     | NULL    |                |
-| status      | binary(1)   | YES  |     | 1       |                |
-| ativo       | binary(1)   | YES  |     | 1       |                |
-+-------------+-------------+------+-----+---------+----------------+
-7 rows in set (0.01 sec)
-'''
-def insert_asm(idmapper,mppart,volume,inode_major,inode_minor):
-	dbtable="asm"
-	con=MySQLdb.connect(dbhost,dbuser,dbpass)
-	con.select_db(dbbase)
-	query="""
-	INSERT INTO %s VALUES ( NULL,%s,"%s","%s",%s,%s)
-	""" % (\
-	dbtable,idmapper,mppart,volume,inode_major,inode_minor)
-	#print query
-	with con:
-		cur = con.cursor()
-		cur.execute(query)
-		last=cur.lastrowid
-	return last
-
-
-'''
-mysql> explain asm;
-+-------------+-------------+------+-----+---------+-------+
-| Field       | Type        | Null | Key | Default | Extra |
-+-------------+-------------+------+-----+---------+-------+
-| idasm       | int(11)     | NO   | PRI | NULL    |       |
-| idmapper    | int(11)     | NO   |     | NULL    |       |
-| mppart      | varchar(30) | NO   |     | NULL    |       |
-| volume      | varchar(45) | YES  |     | NULL    |       |
-| inode_major | int(11)     | YES  |     | NULL    |       |
-| inode_minor | int(11)     | YES  |     | NULL    |       |
-+-------------+-------------+------+-----+---------+-------+
-6 rows in set (0.00 sec)
-'''
-def insert_lvm(idmapper,mpathd,vg,lvm):
-	dbtable="lvm"
-	con=MySQLdb.connect(dbhost,dbuser,dbpass)
-	con.select_db(dbbase)
-	query="""
-	INSERT INTO %s VALUES ( NULL,%s,"%s","%s","%s")
-	""" % (\
-	dbtable,idmapper,mpathd,vg,lvm)
-	#print query
-	with con:
-		cur = con.cursor()
-		cur.execute(query)
-		last=cur.lastrowid
-	return last
+		row=int(cur.rowcount)
+		result = 0
+	except:
+		result = 1
+	if int(row) == 0:  result = 1 
+	con.close()
+	print result
+	return result
 
 	
+def remote_into(Linhas,N,host):
+  dbtable = ['acct_uid','acct_cmd']
+  con=MySQLdb.connect(dbhost,dbuser,dbpass)
+  con.select_db(dbbase)
+  b=len(Linhas)
+  count=0
+  with con:
+    cur = con.cursor()
+    for tulpas in Linhas:
+         if N == 0 :
+            a ="INSERT INTO %s VALUES ( '%s', %s , %s , %s  , %s , '%s' ) " %(dbtable[N],host,tulpas[0],tulpas[1],tulpas[2],tulpas[3],tulpas[4])
+         if N == 1 :
+            a ="INSERT INTO %s VALUES ( '%s', '%s' , %s , %s  , %s , %s , '%s')  " %(dbtable[N],host,tulpas[0],tulpas[1],tulpas[2],tulpas[3],tulpas[4],tulpas[5])
+         try:
+             cur.execute(a)
+         except: 
+            count+=1
+          
+  con.close()
+  print "REMOTE INTO:",dbtable[N], b
+  return b-count
+
+def remote_local_users(Linhas,ghost):
+  dbtable = "users"
+  import MySQLdb
+  #con=MySQLdb.connect(dbhost,dbuser,dbpass,dbbase)
+  con=MySQLdb.connect(host=dbhost,user=dbuser,passwd=dbpass)
+  con.select_db(dbbase)
+  b=len(Linhas)
+  count=0
+  with con:
+    cur = con.cursor()
+    for tulpas in Linhas:
+         tulpas=tulpas.split(",")
+         # "(%s ,%s, %s, '%s' )" % (uid, gid , Username,"grupo")
+         a ="INSERT INTO %s VALUES ( %s, %s , '%s' , '%s'  ) " %(dbtable,tulpas[0],tulpas[1],tulpas[2],tulpas[3])
+         #print a
+         try:
+             cur.execute(a)
+         except:
+            count+=1
+  con.close()
+  print "LOCAL INTO",dbtable,b
+  return b-count
+
+
+  
+  
 	
-def psacct():	
+def psacct_db(all):	
+	return all
 	
 
 
-def dados_db(host,mpath,discos,asm,lv):
-	#print host
-	#['mpath29', '36000144000000010700b1c798bc69f47', '107374182400.0']
-	D_mpath=mpath[0].split()
-	path=D_mpath[0]
-	wwnid=D_mpath[1]
-	size=D_mpath[2]
-	last_id=insert_mapper(host,path,wwnid,size)
-	#print last_id
-	msg0="%s [%s]" % (host, last_id)
-	msg0 = msg0 +" PATH: %s %s %s"  % ( path , wwnid ,size)
-	#print msg0
-	if len(discos) > 0:
-		D_discos=discos[0].split("|")
-		#['sdea 128:32 active ready ', ' sdex 129:144 active ready ', ' sdfw 131:32 active ready ', ' sdgj 131:240 active ready']
-		status=1
-		ativo=1
-		msg1=" DISCOS: "
-		msg2=""
-		#print D_discos
-		for n in range(len(D_discos)):
-			linha=D_discos[n].split()
-			#print linha
-			sd_disco=linha[0]
-			msg2=msg2+sd_disco+"(" 
-			inode_major=int(linha[1].split(":")[0])
-			inode_minor=int(linha[1].split(":")[1])
-			msg2=msg2+"%s %s" % (inode_major,inode_minor)
-			if linha[2] == "active" : status=0
-			if linha[3] == "ready" : ativo=0
-			sd_id=str(insert_sd_associados(last_id,sd_disco,inode_major,inode_minor,status,ativo))
-			msg2=msg2+str(status)+" "+str(ativo)+" ["+sd_id+"]) "
-			#print msg2
-		
-	
-	
-	if len(asm) > 0:
-		#['mpath29p1', 'VOL1033', '253', '62']
-		linha0=asm[0].split()
-		mppart=linha0[0]
-		volume=linha0[1]
-		inode_major=linha0[2]
-		inode_minor=linha0[3]
-		asm_id = insert_asm(last_id,mppart,volume,inode_major,inode_minor)
-		msg3 = " ASM ( %s %s %s %s [%s] ) " % (mppart,volume,inode_major,inode_minor,asm_id)
-	else:
-	    msg3 = "ASM ( None)"
-		
-	
-	
-	if len(lv) > 0:
-		print "\tLVM","|",
-		for l in range(len(lv)):
-			lvdisplay=lv[l].split()
-			vg=lvdisplay[1]
-			lvm=lvdisplay[2]
-			mpathd=lvdisplay[0]
-			id_lvm=insert_lvm(last_id,mpathd,vg,lvm)
-			msg4=" LVM ( %s %s %s [%s])" % (mpathd,vg,lvm,id_lvm)
-	else:
-		msg4=" LVM (None)"
-	
-	msg=msg0+msg1+msg2+msg3+msg4
-	log_msg(msg,log_pri[0],log_pri[1])
-	### prepara dados para a base de dados.
-	# aqui vou precisar brincar de dba.
-	
-	ok="Dados Inseridos : %s - %s" % (last_id,path)
-	return ok
 
-
-
-
-	
-	
 	
 	
 	
 # registro das funções	
-#server.register_function(multiply)
-#server.register_function(now)
 server.register_function(psacct_db)
+server.register_function(valida_host)
+server.register_function(remote_into)
+server.register_function(remote_local_users)
+
 
 
 ####  start do servidor
